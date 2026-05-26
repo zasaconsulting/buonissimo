@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Serve i file statici (come la tua pagina del tavolo)
-app.use(express.static('public'));
+app.use(express.static(__dirname));
 
 // ROTTA: Genera l'immagine della storia per il Instagram
 app.get('/genera-storia', async (req, res) => {
