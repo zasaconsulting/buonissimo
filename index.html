@@ -111,10 +111,36 @@
         document.getElementById('tavolo-label').innerText = `Ti diamo il benvenuto al Tavolo ${numeroTavolo}`;
 
         // Step 1: Apre solo Instagram senza toccare la pagina
-        function openInstagram() {
-            alert("Buonissimo sta salvando la grafica speciale nel tuo rullino foto. Verrai reindirizzato su Instagram Storie: usa lo sticker foto per pubblicarla!");
-            window.location.href = "instagram://story-camera";
+        async function openInstagram() {
+    // Sostituisci questo con il tuo link REALE di Render
+    const urlServer = `https://IL-TUO-LINK-DI-RENDER.onrender.com/genera-storia?tavolo=${numeroTavolo}`;
+    
+    alert("Buonissimo sta generando la tua grafica personalizzata. Attendi un istante...");
+
+    try {
+        // Tentiamo prima la strada della condivisione nativa
+        const response = await fetch(urlServer);
+        if (!response.ok) throw new Error("Errore server");
+        
+        const blob = await response.blob();
+        const file = new File([blob], 'storia_buonissimo.jpg', { type: 'image/jpeg' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: 'Condividi e ricevi lo sconto!'
+            });
+            return; // Se ha funzionato, si ferma qui
         }
+    } catch (error) {
+        console.log("Condivisione nativa non riuscita, uso il piano B di emergenza...");
+    }
+
+    // PIANO B (Infallibile): Se la condivisione automatica fallisce, 
+    // mandiamo l'utente direttamente alla pagina dell'immagine.
+    // Lì vedrà Sfondo + QR, terrà premuto per salvarla e poi aprirà Instagram.
+    window.location.href = urlServer;
+}
 
         // Step 2: Quando il cliente torna da Instagram, clicca qui e la schermata verde si attiva e RESTA FISSA
         function showGreenCoupon() {
