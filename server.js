@@ -5,41 +5,51 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve i file statici (come la tua pagina del tavolo)
 app.use(express.static(__dirname));
 
-// ROTTA: Genera l'immagine della storia per il Instagram
 app.get('/genera-storia', async (req, res) => {
     const tavolo = req.query.tavolo || 'Generico';
     
-    // 1. Il link che dovranno inquadrare i follower dalla storia su Instagram
-    const linkFollower = `https://tuo-progetto-backend.render.com/riscatta?da_tavolo=${tavolo}`;
+    // Il link che dovranno inquadrare i follower
+    const linkFollower = `https://tan-eran-30.tiiny.site/follower.html?da_tavolo=${tavolo}`;
 
     try {
-        // 2. Generiamo il QR code per i follower come un buffer di immagine (PNG)
+        const sfondoPath = path.join(__dirname, 'sfondo_storia.jpg');
+        
+        // 1. Leggiamo le dimensioni reali della tua immagine di sfondo
+        const metadata = await sharp(sfondoPath).metadata();
+        const larghezzaSfondo = metadata.width;
+        const altezzaSfondo = metadata.height;
+
+        // 2. Calcoliamo la dimensione ideale del QR (es. il 30% della larghezza dello sfondo)
+        const qrSize = Math.round(larghezzaSfondo * 0.35);
+
+        // 3. Generiamo il QR code con i colori invertiti/ottimizzati (nero su sfondo bianco)
         const qrBuffer = await qrcode.toBuffer(linkFollower, {
-            width: 300,
-            margin: 2,
-            color: { dark: '#000000', light: '#FFFFFF' }
+            width: qrSize,
+            margin: 3, // Margine bianco protettivo intorno al QR
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
         });
 
-        // 3. Prendiamo lo sfondo della storia (es. un'immagine 1080x1920 pixel del locale)
-        // Nota: devi avere un file chiamato "sfondo_storia.jpg" nella stessa cartella
-        const sfondoPath = path.join(__dirname, 'sfondo_storia.jpg');
+        // 4. Calcoliamo le coordinate per centrarlo perfettamente in basso
+        const posizioneLeft = Math.round((larghezzaSfondo - qrSize) / 2);
+        const posizioneTop = Math.round(altezzaSfondo * 0.65); // Posizionato al 65% dell'altezza (parte inferiore)
 
-        // 4. USIAMO SHARP PER COMPORRE L'IMMAGINE: Incolliamo il QR code sullo sfondo
+        // 5. Componiamo l'immagine finale sovrapponendo il QR centrato
         const immagineStoria = await sharp(sfondoPath)
             .composite([
                 { 
                     input: qrBuffer, 
-                    top: 1100, // Coordinata Y: posiziona il QR nella metà inferiore della storia
-                    left: 390  // Coordinata X: centra il QR (1080 di larghezza / 2 - 150)
+                    top: posizioneTop, 
+                    left: posizioneLeft 
                 }
             ])
             .jpeg()
             .toBuffer();
 
-        // 5. Rispondiamo inviando direttamente l'immagine risultante
         res.setHeader('Content-Type', 'image/jpeg');
         res.send(immagineStoria);
 
@@ -49,7 +59,10 @@ app.get('/genera-storia', async (req, res) => {
     }
 });
 
-// Avvia il server
+app.get('/', (req, res) => {
+    res.send("Server Buonissimo Attivo e Online!");
+});
+
 app.listen(PORT, () => {
     console.log(`Server Buonissimo attivo sulla porta ${PORT}`);
 });
