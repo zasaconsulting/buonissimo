@@ -11,7 +11,7 @@ app.get('/genera-storia', async (req, res) => {
     const tavolo = req.query.tavolo || 'Generico';
     
     // Il link che dovranno inquadrare i follower
-    const linkFollower = `https://tan-eran-30.tiiny.site/follower.html?da_tavolo=${tavolo}`;
+    const linkFollower = `https://buonissimo.tiiny.site/follower.html?da_tavolo=${tavolo}`;
 
     try {
         const sfondoPath = path.join(__dirname, 'sfondo_storia.jpg');
