@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buonissimo - Condividi e Risparmia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased text-gray-900 min-h-screen flex flex-col justify-between">
+
+    <header class="bg-white border-b border-gray-100 py-4 px-6 text-center shadow-sm">
+        <h1 class="text-2xl font-black tracking-tight text-amber-500 flex items-center justify-center gap-2">
+            <i data-lucide="utensils-crossed" class="w-6 h-6"></i>
+            BUONISSIMO
+        </h1>
+    </header>
+
+    <main class="flex-1 max-w-md mx-auto w-full p-6 flex flex-col justify-center">
+        
+        <div class="text-center mb-6">
+            <span class="inline-block bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-2">
+                Sessione Attiva
+            </span>
+            <h2 class="text-xl font-bold" id="tavolo-label">Ti diamo il benvenuto al tuo Tavolo!</h2>
+        </div>
+
+        <div id="screen-share" class="space-y-6">
+            <div class="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 text-center space-y-4">
+                <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-500">
+                    <i data-lucide="sparkles" class="w-8 h-8 animate-pulse"></i>
+                </div>
+                <h3 class="text-2xl font-black text-gray-800 leading-snug">
+                    Sconto immediato del <span class="text-amber-500 text-3xl block font-black my-1">20% OFF</span> sul conto di oggi!
+                </h3>
+                <p class="text-gray-500 text-sm px-2">
+                    E in più regali **5 coupon esclusivi** ai primi 5 amici che inquadreranno la tua storia su Instagram!
+                </p>
+            </div>
+
+            <div class="bg-amber-50/50 rounded-2xl p-4 border border-amber-100 space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                    <i data-lucide="info" class="w-4 h-4"></i> Come sbloccarlo:
+                </h4>
+                <ol class="text-xs text-amber-900/80 space-y-2 list-decimal list-inside">
+                    <li>Clicca sul pulsante arancione qui sotto per aprire Instagram.</li>
+                    <li>Pubblica la tua storia.</li>
+                    <li>Torna qui su questa pagina per mostrare il QR alla cassa!</li>
+                </ol>
+            </div>
+
+            <button onclick="openInstagram()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg py-4 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-3 transform active:scale-[0.98]">
+                <i data-lucide="instagram" class="w-6 h-6"></i>
+                1. Apri e Pubblica Storia
+            </button>
+
+            <button onclick="showGreenCoupon()" class="w-full bg-emerald-600 text-white font-bold text-base py-3 px-6 rounded-2xl shadow-md flex items-center justify-center gap-3 border border-emerald-700">
+                <i data-lucide="ticket" class="w-5 h-5"></i>
+                2. Genera QR Sconto Cassa
+            </button>
+        </div>
+
+        <div id="screen-coupon" class="hidden space-y-6">
+            <div class="bg-emerald-500 text-white rounded-3xl p-6 shadow-xl text-center space-y-4 relative overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-600/30 rounded-full blur-xl"></div>
+                
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto text-white">
+                    <i data-lucide="check-circle" class="w-8 h-8"></i>
+                </div>
+                
+                <div>
+                    <h3 class="text-2xl font-black">Sconto Attivato!</h3>
+                    <p class="text-emerald-100 text-xs mt-1">Mostra questo codice alla cassa per riscuoterlo</p>
+                </div>
+
+                <div class="bg-white text-gray-900 rounded-2xl p-6 my-2 shadow-inner flex flex-col items-center justify-center space-y-4">
+                    
+                    <div id="qrcode" class="p-2 bg-white border border-gray-100 rounded-xl shadow-sm"></div>
+                    
+                    <div class="w-full border-t border-dashed border-gray-200 my-2"></div>
+
+                    <div>
+                        <div class="text-xl font-mono font-black tracking-wider text-center text-gray-800" id="coupon-code">
+                            - - - - -
+                        </div>
+                        <div class="text-[9px] text-gray-400 mt-1 uppercase tracking-widest font-bold text-center">
+                            Codice Temporaneo Tavolo Verificato
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="goBack()" class="text-xs text-emerald-100 underline opacity-80 hover:opacity-100">
+                    Torna alle istruzioni
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-4 text-center text-[10px] text-gray-400 border-t border-gray-100 bg-white">
+        Powered by <span class="font-bold tracking-tight text-gray-600">Buonissimo Platform</span> © 2026
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const numeroTavolo = urlParams.get('tavolo') || "Generico";
+        
+        document.getElementById('tavolo-label').innerText = `Ti diamo il benvenuto al Tavolo ${numeroTavolo}`;
+
+        // Step 1: Apre solo Instagram senza toccare la pagina
+        function openInstagram() {
+            alert("Buonissimo sta salvando la grafica speciale nel tuo rullino foto. Verrai reindirizzato su Instagram Storie: usa lo sticker foto per pubblicarla!");
+            window.location.href = "instagram://story-camera";
+        }
+
+        // Step 2: Quando il cliente torna da Instagram, clicca qui e la schermata verde si attiva e RESTA FISSA
+        function showGreenCoupon() {
+            const randomId = Math.floor(100 + Math.random() * 900);
+            const finalCode = `BNSM-T${numeroTavolo}-${randomId}`;
+            
+            document.getElementById('coupon-code').innerText = finalCode;
+            document.getElementById("qrcode").innerHTML = "";
+
+            new QRCode(document.getElementById("qrcode"), {
+                text: finalCode,
+                width: 140,
+                height: 140,
+                colorDark : "#1f2937",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            // Mostra la schermata verde e nasconde i bottoni
+            document.getElementById('screen-share').classList.add('hidden');
+            document.getElementById('screen-coupon').classList.remove('hidden');
+        }
+
+        // Permette di resettare la schermata se necessario
+        function goBack() {
+            document.getElementById('screen-coupon').classList.add('hidden');
+            document.getElementById('screen-share').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
