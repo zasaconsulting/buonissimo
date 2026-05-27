@@ -6,7 +6,6 @@
     <title>Buonissimo - Condividi e Risparmia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-gray-50 font-sans antialiased text-gray-900 min-h-screen flex flex-col justify-between">
 
@@ -18,7 +17,7 @@
     </header>
 
     <main class="flex-1 max-w-md mx-auto w-full p-6 flex flex-col justify-center">
-        
+
         <div class="text-center mb-6">
             <span class="inline-block bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-2">
                 Sessione Attiva
@@ -26,6 +25,7 @@
             <h2 class="text-xl font-bold" id="tavolo-label">Ti diamo il benvenuto al tuo Tavolo!</h2>
         </div>
 
+        <!-- SCREEN 1: Share prompt -->
         <div id="screen-share" class="space-y-6">
             <div class="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 text-center space-y-4">
                 <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-500">
@@ -35,7 +35,7 @@
                     Sconto immediato del <span class="text-amber-500 text-3xl block font-black my-1">20% OFF</span> sul conto di oggi!
                 </h3>
                 <p class="text-gray-500 text-sm px-2">
-                    E in più regali **5 coupon esclusivi** ai primi 5 amici che inquadreranno la tua storia su Instagram!
+                    Pubblica una storia su Instagram con la nostra grafica e mostra il QR alla cassa per riscuoterlo.
                 </p>
             </div>
 
@@ -44,53 +44,73 @@
                     <i data-lucide="info" class="w-4 h-4"></i> Come sbloccarlo:
                 </h4>
                 <ol class="text-xs text-amber-900/80 space-y-2 list-decimal list-inside">
-                    <li>Clicca sul pulsante arancione qui sotto per aprire Instagram.</li>
-                    <li>Pubblica la tua storia.</li>
-                    <li>Torna qui su questa pagina per mostrare il QR alla cassa!</li>
+                    <li>Clicca sul pulsante arancione qui sotto.</li>
+                    <li>L'immagine con il tuo QR verrà scaricata.</li>
+                    <li>Si aprirà Instagram: seleziona l'immagine salvata come storia e pubblicala.</li>
+                    <li>Torna qui e premi "Ho Pubblicato" per attivare lo sconto!</li>
                 </ol>
             </div>
 
-            <button onclick="openInstagram()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg py-4 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-3 transform active:scale-[0.98]">
+            <!-- ONLY the orange button — green one removed -->
+            <button onclick="avviaStoria()" id="btn-instagram"
+                class="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-lg py-4 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-3 transform active:scale-[0.98]">
                 <i data-lucide="instagram" class="w-6 h-6"></i>
-                1. Apri e Pubblica Storia
-            </button>
-
-            <button onclick="showGreenCoupon()" class="w-full bg-emerald-600 text-white font-bold text-base py-3 px-6 rounded-2xl shadow-md flex items-center justify-center gap-3 border border-emerald-700">
-                <i data-lucide="ticket" class="w-5 h-5"></i>
-                2. Genera QR Sconto Cassa
+                Apri e Pubblica Storia
             </button>
         </div>
 
+        <!-- SCREEN 2: Waiting for publish confirmation -->
+        <div id="screen-waiting" class="hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 text-center space-y-4">
+                <div class="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto text-orange-400">
+                    <i data-lucide="clock" class="w-8 h-8 animate-spin"></i>
+                </div>
+                <h3 class="text-xl font-black text-gray-800">Quasi fatto!</h3>
+                <p class="text-gray-500 text-sm px-2">
+                    Pubblica la storia su Instagram con l'immagine scaricata, poi torna qui e premi il pulsante verde.
+                </p>
+                <div class="bg-orange-50 rounded-xl p-3 text-xs text-orange-700 font-medium border border-orange-100">
+                    💡 Su Instagram: + → Story → Seleziona la foto dalla galleria → Pubblica
+                </div>
+            </div>
+
+            <button onclick="confermaPubblicazione()" id="btn-conferma"
+                class="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold text-lg py-4 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-3 transform active:scale-[0.98]">
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                ✅ Ho Pubblicato la Storia!
+            </button>
+
+            <button onclick="tornaSuShare()" class="text-xs text-gray-400 underline text-center w-full">
+                ← Indietro
+            </button>
+        </div>
+
+        <!-- SCREEN 3: Coupon / QR to show cashier -->
         <div id="screen-coupon" class="hidden space-y-6">
             <div class="bg-emerald-500 text-white rounded-3xl p-6 shadow-xl text-center space-y-4 relative overflow-hidden">
                 <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-600/30 rounded-full blur-xl"></div>
-                
+
                 <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto text-white">
                     <i data-lucide="check-circle" class="w-8 h-8"></i>
                 </div>
-                
+
                 <div>
-                    <h3 class="text-2xl font-black">Sconto Attivato!</h3>
+                    <h3 class="text-2xl font-black">Sconto Attivato! 🎉</h3>
                     <p class="text-emerald-100 text-xs mt-1">Mostra questo codice alla cassa per riscuoterlo</p>
                 </div>
 
                 <div class="bg-white text-gray-900 rounded-2xl p-6 my-2 shadow-inner flex flex-col items-center justify-center space-y-4">
-                    
-                    <div id="qrcode" class="p-2 bg-white border border-gray-100 rounded-xl shadow-sm"></div>
-                    
+                    <img id="qr2-img" src="" alt="QR2 Coupon" class="w-36 h-36 rounded-xl border border-gray-100 shadow-sm"/>
                     <div class="w-full border-t border-dashed border-gray-200 my-2"></div>
-
                     <div>
-                        <div class="text-xl font-mono font-black tracking-wider text-center text-gray-800" id="coupon-code">
-                            - - - - -
-                        </div>
+                        <div class="text-xl font-mono font-black tracking-wider text-center text-gray-800" id="coupon-code">- - - - -</div>
                         <div class="text-[9px] text-gray-400 mt-1 uppercase tracking-widest font-bold text-center">
                             Codice Temporaneo Tavolo Verificato
                         </div>
                     </div>
                 </div>
 
-                <button onclick="goBack()" class="text-xs text-emerald-100 underline opacity-80 hover:opacity-100">
+                <button onclick="tornaSuShare()" class="text-xs text-emerald-100 underline opacity-80 hover:opacity-100">
                     Torna alle istruzioni
                 </button>
             </div>
@@ -105,69 +125,142 @@
     <script>
         lucide.createIcons();
 
+        // ── Read URL params ──────────────────────────────────────────────
         const urlParams = new URLSearchParams(window.location.search);
-        const numeroTavolo = urlParams.get('tavolo') || "Generico";
-        
+        const numeroTavolo = urlParams.get('tavolo') || 'Generico';
         document.getElementById('tavolo-label').innerText = `Ti diamo il benvenuto al Tavolo ${numeroTavolo}`;
 
-        // Step 1: Apre solo Instagram senza toccare la pagina
-    async function openInstagram() {
-    // Sostituisci questo con il tuo link REALE di Render
-    const urlServer = `https://buonissimo.onrender.com/genera-storia?tavolo=${numeroTavolo}`;
-    
-    alert("Buonissimo sta generando la tua grafica personalizzata. Attendi un istante...");
+        const SERVER = 'https://buonissimo.onrender.com';
 
-    try {
-        // Tentiamo prima la strada della condivisione nativa
-        const response = await fetch(urlServer);
-        if (!response.ok) throw new Error("Errore server");
-        
-        const blob = await response.blob();
-        const file = new File([blob], 'storia_buonissimo.jpg', { type: 'image/jpeg' });
+        // Timestamp + optional geolocation captured at button press
+        let sessionTs = null;
+        let sessionLat = '';
+        let sessionLng = '';
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                files: [file],
-                title: 'Condividi e ricevi lo sconto!'
+        // ── Step 1: Generate story image, download it, open Instagram ───
+        async function avviaStoria() {
+            const btn = document.getElementById('btn-instagram');
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Generazione...';
+
+            sessionTs = Date.now();
+
+            // Try to get geolocation (non-blocking)
+            await new Promise(resolve => {
+                if (!navigator.geolocation) { resolve(); return; }
+                navigator.geolocation.getCurrentPosition(
+                    pos => {
+                        sessionLat = pos.coords.latitude.toFixed(6);
+                        sessionLng = pos.coords.longitude.toFixed(6);
+                        resolve();
+                    },
+                    () => resolve(),
+                    { timeout: 3000 }
+                );
             });
-            return; // Se ha funzionato, si ferma qui
+
+            const storyUrl = `${SERVER}/genera-storia?tavolo=${encodeURIComponent(numeroTavolo)}&ts=${sessionTs}&lat=${encodeURIComponent(sessionLat)}&lng=${encodeURIComponent(sessionLng)}`;
+
+            try {
+                // Fetch the composite image (sfondo + QR2 overlay top-right)
+                const response = await fetch(storyUrl);
+                if (!response.ok) throw new Error('Server error ' + response.status);
+                const blob = await response.blob();
+
+                // --- Strategy A: Web Share API (iOS Safari, some Android) ---
+                const file = new File([blob], 'storia_buonissimo.jpg', { type: 'image/jpeg' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    // Show waiting screen before share dialog
+                    mostraSchermataAttesa();
+                    await navigator.share({ files: [file], title: 'Condividi su Instagram!' });
+                    btn.disabled = false;
+                    ripristinaBtn();
+                    return;
+                }
+
+                // --- Strategy B: Download image + open Instagram deeplink ---
+                // Download image to camera roll
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'storia_buonissimo.jpg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+                // Show waiting screen with instructions
+                mostraSchermataAttesa();
+
+                // Try Instagram story deeplink (works on native app if installed)
+                setTimeout(() => {
+                    window.location.href = 'instagram://story-camera';
+                }, 800);
+
+            } catch (err) {
+                console.error('Errore avviaStoria:', err);
+                alert('Errore nella generazione. Riprova tra un istante.');
+            }
+
+            btn.disabled = false;
+            ripristinaBtn();
         }
-    } catch (error) {
-        console.log("Condivisione nativa non riuscita, uso il piano B di emergenza...");
-    }
 
-    // PIANO B (Infallibile): Se la condivisione automatica fallisce, 
-    // mandiamo l'utente direttamente alla pagina dell'immagine.
-    // Lì vedrà Sfondo + QR, terrà premuto per salvarla e poi aprirà Instagram.
-    window.location.href = urlServer;
-}
+        function mostraSchermataAttesa() {
+            document.getElementById('screen-share').classList.add('hidden');
+            document.getElementById('screen-waiting').classList.remove('hidden');
+            document.getElementById('screen-coupon').classList.add('hidden');
+        }
 
-        // Step 2: Quando il cliente torna da Instagram, clicca qui e la schermata verde si attiva e RESTA FISSA
-        function showGreenCoupon() {
+        function ripristinaBtn() {
+            const btn = document.getElementById('btn-instagram');
+            btn.innerHTML = '<i data-lucide="instagram" class="w-6 h-6"></i> Apri e Pubblica Storia';
+            lucide.createIcons();
+        }
+
+        // ── Step 2: User confirms they published — notify server ─────────
+        async function confermaPubblicazione() {
+            const btn = document.getElementById('btn-conferma');
+            btn.disabled = true;
+            btn.innerText = 'Invio conferma...';
+
+            // Notify server
+            try {
+                await fetch(`${SERVER}/conferma-storia`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tavolo: numeroTavolo,
+                        ts: sessionTs || Date.now(),
+                        lat: sessionLat,
+                        lng: sessionLng
+                    })
+                });
+            } catch (e) {
+                console.warn('Notifica server fallita (non bloccante):', e);
+            }
+
+            // Build final coupon code
             const randomId = Math.floor(100 + Math.random() * 900);
             const finalCode = `BNSM-T${numeroTavolo}-${randomId}`;
-            
             document.getElementById('coupon-code').innerText = finalCode;
-            document.getElementById("qrcode").innerHTML = "";
 
-            new QRCode(document.getElementById("qrcode"), {
-                text: finalCode,
-                width: 140,
-                height: 140,
-                colorDark : "#1f2937",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
+            // Show QR2 image fetched from server (same composite image used in story)
+            const storyUrl = `${SERVER}/genera-storia?tavolo=${encodeURIComponent(numeroTavolo)}&ts=${sessionTs || Date.now()}&lat=${encodeURIComponent(sessionLat)}&lng=${encodeURIComponent(sessionLng)}`;
+            document.getElementById('qr2-img').src = storyUrl;
 
-            // Mostra la schermata verde e nasconde i bottoni
-            document.getElementById('screen-share').classList.add('hidden');
+            // Switch to coupon screen
+            document.getElementById('screen-waiting').classList.add('hidden');
             document.getElementById('screen-coupon').classList.remove('hidden');
+
+            btn.disabled = false;
         }
 
-        // Permette di resettare la schermata se necessario
-        function goBack() {
+        function tornaSuShare() {
             document.getElementById('screen-coupon').classList.add('hidden');
+            document.getElementById('screen-waiting').classList.add('hidden');
             document.getElementById('screen-share').classList.remove('hidden');
+            ripristinaBtn();
         }
     </script>
 </body>
