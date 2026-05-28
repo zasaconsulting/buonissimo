@@ -149,16 +149,9 @@
                 const previewBox = document.createElement("div");
                 previewBox.className = "relative max-w-full rounded-2xl overflow-hidden shadow-inner border border-gray-100 aspect-[9/16] bg-black flex items-center justify-center";
 
-                if (appState.selectedFormat === "video") {
-                    // Carica il video promozionale presente sul server
-                    const video = document.createElement("video");
-                    video.src = `${urlServer}/assets/video_promo.mp4`; // Caricato a parte sul server
-                    video.autoplay = true;
-                    video.loop = true;
-                    video.muted = true;
-                    video.playsInline = true;
-                    video.className = "w-full h-full object-cover";
-                    previewBox.appendChild(video);
+               if (appState.selectedFormat === "video") {
+                    downloadLink.href = appState.videoGeneratoUrl; // Punta all'MP4 personalizzato con QR
+                    downloadLink.setAttribute("download", `storia_${codiceQR2Univoco}.mp4`);
                 } else {
                     // Mostra la foto scattata ed elaborata dal canvas
                     const img = document.createElement("img");
@@ -265,33 +258,64 @@
             reader.readAsDataURL(file);
         }
 
-        async function handleStepAction(stepId) {
-            if (stepId === "welcome") {
-                if (appState.selectedFormat === "video") {
-                    appState.currentStep++;
-                    renderStep();
-                } else {
-                    alert("Per favore, usa il tasto 'Scatta Foto' sopra per caricare l'immagine prima di procedere.");
-                }
-                return;
+async function handleStepAction(stepId) {
+    if (stepId === "welcome") {
+        if (appState.selectedFormat === "video") {
+            // Mostriamo una finta o reale attesa per il rendering di FFmpeg
+            const container = document.getElementById("wizard-step");
+            container.innerHTML = `
+                <div class="bg-white rounded-3xl p-6 shadow-xl text-center space-y-4">
+                    <div class="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <h3 class="text-lg font-bold">Generazione Video in corso...</h3>
+                    <p class="text-sm text-gray-400">Stiamo timbrando il video con il tuo QR code unico. Attendi qualche secondo.</p>
+                </div>`;
+
+            // Chiamiamo il backend per generare l'MP4 reale
+            const response = await fetch(`${urlServer}/api/genera-video-tavolo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo })
+            });
+            const risultato = await response.json();
+
+            if (risultato.successo) {
+                // Salviamo il link del video reale generato da Render
+                appState.videoGeneratoUrl = `${urlServer}${risultato.videoUrl}`;
+                appState.currentStep++;
+                renderStep();
+            } else {
+                alert("Errore nella generazione del video. Riprova.");
+                renderStep();
             }
-
-            if (stepId === "preview_media") {
-                // Invio log di sessione iniziale al server Render
-                await fetch(`${urlServer}/api/inizia-sessione`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo, formato: appState.selectedFormat })
-                });
-
-                // Deep link su Instagram Camera
-                window.location.href = "instagram://camera";
-
-                setTimeout(() => {
-                    appState.currentStep++;
-                    renderStep();
-                }, 1200);
+        } else {
+            if (appState.fotoElaborataUrl) {
+                appState.currentStep++;
+                renderStep();
+            } else {
+                alert("Scatta prima la foto!");
             }
+        }
+        return;
+    }
+
+    if (stepId === "preview_media") {
+        // Se è una foto inviamo la sessione (per il video è già stata creata al passo prima)
+        if (appState.selectedFormat === "foto") {
+            await fetch(`${urlServer}/api/inizia-sessione`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo, formato: "foto" })
+            });
+        }
+
+        window.location.href = "instagram://camera";
+
+        setTimeout(() => {
+            appState.currentStep++;
+            renderStep();
+        }, 1200);
+    }
+}
         }
 
         document.addEventListener("DOMContentLoaded", renderStep);
