@@ -246,8 +246,8 @@
 
                     // Fusione grafica QR2
                     const divTemp = document.createElement("div");
-                    new QRCode(divTemp, { text: `${window.location.origin}/riscatta?codice=${codiceQR2Univoco}`, width: 180, height: 180 });
-                    
+                    // Il QR2 deve puntare al tuo server Render dove gestirai la pagina di riscatto dei follower
+                    new QRCode(divTemp, { text: `${urlServer}/riscatta.html?codice=${codiceQR2Univoco}`, width: 180, height: 180 });
                     setTimeout(() => {
                         ctx.drawImage(divTemp.querySelector('img'), 850, 60, 180, 180);
                         const logo = new Image();
