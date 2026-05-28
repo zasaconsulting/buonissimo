@@ -6,8 +6,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Fornisce l'accesso alla cartella contenente il video promozionale MP4 della pasticceria
+// 1. Rende accessibili i file nella cartella principale (index.html, cassa.html, ecc.)
+app.use(express.static(__dirname));
+
+// 2. Fornisce l'accesso alla cartella degli assets (video_promo.mp4)
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
+// 3. Se qualcuno va sull'indirizzo base senza specificare nulla, gli mostra index.html
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Database in memoria per tracciare lo sconto associato al QR2
 let sessioniTavoli = {}; 
