@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
 const ffmpeg = require('fluent-ffmpeg');
-
+const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const app = express();
 app.use(cors());
 app.use(express.json());
