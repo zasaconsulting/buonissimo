@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buonissimo - Monitor Cassa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        /* Specchia l'anteprima video per renderla intuitiva per il cliente che avvicina il telefono */
+        #reader video { transform: scaleX(-1); }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between p-6">
+
+    <header class="text-center py-2 border-b border-slate-800">
+        <h1 class="text-xl font-black tracking-widest text-amber-500 flex items-center justify-center gap-2">
+            <i data-lucide="scan-barcode"></i> BOOTH DI SCANNERIZZAZIONE CASSA
+        </h1>
+    </header>
+
+    <main class="flex-1 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center my-4">
+        
+        <!-- TELECAMERA FRONTALE (MONTAGGIO BANCO SELF-SERVICE) -->
+        <div class="bg-slate-800 rounded-3xl p-6 border border-slate-700 space-y-4 text-center">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400">Mostra il tuo codice QR2</h2>
+            <div id="reader" class="overflow-hidden rounded-2xl bg-black aspect-square border-2 border-dashed border-slate-600"></div>
+            <p class="text-xs text-slate-500">Avvicina lo schermo del telefono per rilevare il codice</p>
+        </div>
+
+        <!-- SCHERMO LOGICO INTERNO DA SPIEGARE AL RISTORATORE -->
+        <div id="box-responso" class="bg-slate-800 rounded-3xl p-8 border border-slate-700 h-full flex flex-col justify-center items-center text-center space-y-6">
+            <div id="stato-icona" class="w-20 h-20 bg-slate-700 rounded-full flex items-center justify-center text-slate-400">
+                <i data-lucide="qr-code" class="w-10 h-10 animate-pulse"></i>
+            </div>
+            
+            <div class="space-y-2">
+                <h3 id="txt-titolo" class="text-2xl font-black text-slate-300">In attesa del codice...</h3>
+                <p id="txt-sottotitolo" class="text-sm text-slate-400">I dati elaborati verranno passati in automatico al gestionale di cassa</p>
+            </div>
+
+            <div id="valore-sconto" class="hidden text-6xl font-black text-amber-500 bg-amber-500/10 px-8 py-4 rounded-3xl border border-amber-500/20">
+                0% OFF
+            </div>
+
+            <div id="dettagli-tavolo" class="hidden text-xs text-slate-400 font-mono bg-slate-900/50 p-4 rounded-xl w-full text-left space-y-1">
+                <div>NUMERO TAVOLO: <span id="res-tavolo" class="text-white font-bold"></span></div>
+                <div>FORMATO CONDIVISO: <span id="res-formato" class="text-white font-bold"></span></div>
+                <div>MONITORAGGIO METRICHE: <span id="res-social" class="text-white font-bold"></span></div>
+                <div>CODICE SCAN: <span id="res-codice" class="text-white font-bold"></span></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- TRUCCO DEMO: Simula l'arrivo della menzione Instagram -->
+    <div class="text-center">
+        <button onclick="forzaNotificaMenzioneDemo()" class="text-[10px] text-slate-600 underline opacity-40 hover:opacity-100">
+            [ Strumento Demo: Simula notifica automatica Tag Instagram per il cliente corrente ]
+        </button>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const urlServer = "https://IL-TUO-SERVER-RENDER.onrender.com"; // Sostituisci con link Render reale
+        let ultimoCodiceLetto = "";
+
+        // Forza l'attivazione della cam frontale ("user") sul Lenovo Flexpad
+        const scannerFrontale = new Html5Qrcode("reader");
+        scannerFrontale.start(
+            { facingMode: "user" },
+            { fps: 10, qrbox: { width: 260, height: 260 } },
+            elaboraScansioneCassa
+        );
+
+        async function elaboraScansioneCassa(decodedText) {
+            if (decodedText === ultimoCodiceLetto) return;
+            ultimoCodiceLetto = decodedText;
+
+            const response = await fetch(`${urlServer}/api/verifica-cassa/${decodedText}`);
+            const dati = await response.json();
+
+            if (dati.trovato) {
+                document.getElementById('stato-icona').className = "w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 animate-bounce";
+                document.getElementById('stato-icona').innerHTML = `<i data-lucide="check" class="w-10 h-10"></i>`;
+                
+                document.getElementById('txt-titolo').innerText = "Codice Ricevuto!";
+                document.getElementById('txt-titolo').className = "text-2xl font-black text-emerald-400";
+                document.getElementById('txt-sottotitolo').innerText = "Importo inviato alla cassa centrale del ristorante.";
+
+                const boxSconto = document.getElementById('valore-sconto');
+                boxSconto.innerText = `${dati.sconto}% OFF`;
+                boxSconto.classList.remove('hidden');
+
+                document.getElementById('res-tavolo').innerText = dati.tavolo;
+                document.getElementById('res-formato').innerText = dati.formatoScelto.toUpperCase();
+                document.getElementById('res-social').innerText = dati.statoSocial;
+                document.getElementById('res-codice').innerText = decodedText;
+                document.getElementById('dettagli-tavolo').classList.remove('hidden');
+            } else {
+                alert("Codice non registrato a sistema.");
+            }
+            lucide.createIcons();
+            setTimeout(() => { ultimoCodiceLetto = ""; }, 4000); // Sblocca rilettura dopo 4s
+        }
+
+        async function forzaNotificaMenzioneDemo() {
+            if (!ultimoCodiceLetto) {
+                alert("Effettua prima la scansione del cliente per attivare la demo.");
+                return;
+            }
+            await fetch(`${urlServer}/webhook/instagram`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codice_demo: ultimoCodiceLetto })
+            });
+            alert("Menzione simulata sul server! Avvicina di nuovo il QR2 del cliente per aggiornare lo sconto della cassa al 20%.");
+        }
+    </script>
+</body>
+</html>
