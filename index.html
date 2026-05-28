@@ -41,7 +41,7 @@
         // Stato dell'applicazione condiviso
         const urlParams = new URLSearchParams(window.location.search);
         const numeroTavolo = urlParams.get('tavolo') || "Demo";
-        const urlServer = "https://IL-TUO-SERVER-RENDER.onrender.com"; // Sostituisci con link Render reale
+        const urlServer = "https://buonissimo.onrender.com"; // Sostituisci con link Render reale
         
         let codiceQR2Univoco = `BNSM-T${numeroTavolo}-${Math.floor(1000 + Math.random() * 9000)}`;
         
