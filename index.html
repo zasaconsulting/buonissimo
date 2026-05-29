@@ -11,22 +11,18 @@
 <body class="bg-gray-50 font-sans antialiased text-gray-900 min-h-screen flex flex-col justify-between">
 
     <header class="bg-white border-b border-gray-100 py-4 px-6 text-center shadow-sm">
-        <h1 class="text-2xl font-black tracking-tight text-amber-500 flex items-center justify-center gap-2">
-            BUONISSIMO
-        </h1>
+        <h1 class="text-2xl font-black tracking-tight text-amber-500">BUONISSIMO</h1>
     </header>
 
     <main class="flex-1 max-w-md mx-auto w-full p-6 flex flex-col justify-center">
-        
         <div class="text-center mb-6">
             <span class="inline-block bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-2">
                 Sessione Attiva
             </span>
-            <h2 class="text-xl font-bold" id="tavolo-label">Benvenuto!</h2>
+            <h2 class="text-xl font-bold" id="tavolo-label">Tavolo</h2>
         </div>
 
         <div id="wizard-step" class="space-y-6"></div>
-
         <canvas id="canvas-storia" class="hidden"></canvas>
     </main>
 
@@ -35,7 +31,6 @@
     </footer>
 
     <script>
-        // Configurazione parametri e stati
         const urlParams = new URLSearchParams(window.location.search);
         const numeroTavolo = urlParams.get('tavolo') || "Demo";
         const urlServer = window.location.origin; 
@@ -46,46 +41,35 @@
             currentStep: 0,
             selectedFormat: "video", 
             fotoElaborataUrl: null,
-            videoGeneratoUrl: null
+            qrStickerUrl: null
         };
 
         const steps = [
             {
                 id: "welcome",
                 title: "Sblocca il tuo Premio!",
-                desc: `Ti diamo il benvenuto al Tavolo ${numeroTavolo}. Scegli il formato che preferisci per creare e pubblicare la tua storia su Instagram:`,
+                desc: `Ti diamo il benvenuto al Tavolo ${numeroTavolo}. Scegli come preferisci creare la tua storia di Instagram per ricevere lo Sconto di Cassa:`,
                 buttonText: "Avanti",
                 type: "selector"
             },
             {
                 id: "preview_media",
                 title: "Il tuo contenuto è pronto!",
-                desc: "Il contenuto include il brand del locale e il QR2. I tuoi follower lo inquadreranno per ricevere regali, e tu sbloccherai lo sconto alla cassa!",
-                buttonText: "Condividi su Instagram",
+                desc: "Salva gli elementi sul tuo smartphone e aprilo su Instagram per pubblicare la tua storia taggando il locale!",
+                buttonText: "Apri Instagram",
                 type: "preview"
             },
             {
                 id: "finish",
                 title: "Grazie per aver condiviso!",
-                desc: "La tua sessione social è attiva. Avvicina questo codice QR2 al monitor frontale sul bancone della cassa per riscuotere lo sconto.",
+                desc: "Sessione verificata. Mostra questo codice QR2 alla cassa (avvicinalo al monitor) per riscuotere il tuo sconto.",
                 buttonText: "Fatto",
                 type: "finish"
             }
         ];
 
-        function safeRenderIcons() {
-            try {
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
-            } catch (e) {
-                console.log("Inizializzazione icone rimandata");
-            }
-        }
-
         function renderStep() {
             document.getElementById('tavolo-label').innerText = `Tavolo ${numeroTavolo}`;
-            
             const stepData = steps[appState.currentStep];
             const container = document.getElementById("wizard-step");
             container.innerHTML = "";
@@ -108,13 +92,12 @@
             cardWrapper.appendChild(title);
             cardWrapper.appendChild(desc);
 
-            // GESTIONE STEP 1: SELETTORE FORMATO
             if (stepData.type === "selector") {
                 const selectorContainer = document.createElement("div");
                 selectorContainer.className = "grid grid-cols-2 gap-4 my-4";
 
                 const formats = [
-                    { id: "video", label: "🎥 Video PRO", desc: "Usa il video ufficiale" },
+                    { id: "video", label: "🎥 Video PRO", desc: "Video ufficiale" },
                     { id: "foto", label: "📸 Scatta Foto", desc: "Fotografa il piatto" }
                 ];
 
@@ -137,7 +120,7 @@
                 if (appState.selectedFormat === "foto") {
                     const photoLabel = document.createElement("label");
                     photoLabel.htmlFor = "scatta-foto";
-                    photoLabel.className = "w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl shadow flex items-center justify-center gap-2 cursor-pointer transition-colors";
+                    photoLabel.className = "w-full bg-amber-500 text-white font-bold py-3 px-4 rounded-xl shadow flex items-center justify-center cursor-pointer";
                     photoLabel.innerText = appState.fotoElaborataUrl ? "📸 Scatta un'altra foto" : "📸 Scatta Foto Ora";
                     
                     const photoInput = document.createElement("input");
@@ -153,58 +136,63 @@
                 }
             }
 
-            // GESTIONE STEP 2: ANTEPRIMA CONTENUTO
             if (stepData.type === "preview") {
-                const previewBox = document.createElement("div");
-                previewBox.className = "relative max-w-full rounded-2xl overflow-hidden shadow-inner border border-gray-100 aspect-[9/16] bg-black flex items-center justify-center";
-
                 if (appState.selectedFormat === "video") {
+                    // Anteprima Video Strutturale
+                    const previewBox = document.createElement("div");
+                    previewBox.className = "relative rounded-2xl overflow-hidden aspect-[9/16] bg-black";
+                    
                     const video = document.createElement("video");
-                    video.src = appState.videoGeneratoUrl; 
-                    video.autoplay = true;
-                    video.loop = true;
-                    video.muted = true;
-                    video.playsInline = true;
+                    video.src = `${urlServer}/assets/video_promo.mp4`;
+                    video.autoplay = true; video.loop = true; video.muted = true; video.playsInline = true;
                     video.className = "w-full h-full object-cover";
                     previewBox.appendChild(video);
+                    cardWrapper.appendChild(previewBox);
+
+                    // Pulsante 1: Scarica Video
+                    const dlVideo = document.createElement("a");
+                    dlVideo.className = "w-full bg-slate-800 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 text-sm";
+                    dlVideo.href = `${urlServer}/assets/video_promo.mp4`;
+                    dlVideo.setAttribute("download", "video_pasticceria.mp4");
+                    dlVideo.innerText = "1. Salva Video Promo";
+                    cardWrapper.appendChild(dlVideo);
+
+                    // Pulsante 2: Scarica Sticker QR2
+                    const dlQR = document.createElement("a");
+                    dlQR.className = "w-full bg-amber-500 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 text-sm";
+                    dlQR.href = appState.qrStickerUrl;
+                    dlQR.setAttribute("download", "sticker_qr2.png");
+                    dlQR.innerText = "2. Salva Sticker QR Code";
+                    cardWrapper.appendChild(dlQR);
                 } else {
+                    const previewBox = document.createElement("div");
+                    previewBox.className = "relative rounded-2xl overflow-hidden aspect-[9/16] bg-black";
                     const img = document.createElement("img");
-                    img.src = appState.fotoElaborataUrl; 
+                    img.src = appState.fotoElaborataUrl;
                     img.className = "w-full h-full object-cover";
                     previewBox.appendChild(img);
-                }
+                    cardWrapper.appendChild(previewBox);
 
-                cardWrapper.appendChild(previewBox);
-
-                const downloadLink = document.createElement("a");
-                downloadLink.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 transition-colors";
-                downloadLink.innerText = "📥 Salva nel Telefono";
-                
-                if (appState.selectedFormat === "video") {
-                    downloadLink.href = appState.videoGeneratoUrl;
-                    downloadLink.setAttribute("download", `storia_${codiceQR2Univoco}.mp4`);
-                } else {
-                    downloadLink.href = appState.fotoElaborataUrl;
-                    downloadLink.setAttribute("download", `storia_${codiceQR2Univoco}.jpg`);
+                    const dlFoto = document.createElement("a");
+                    dlFoto.className = "w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center text-sm";
+                    dlFoto.href = appState.fotoElaborataUrl;
+                    dlFoto.setAttribute("download", `storia_${codiceQR2Univoco}.jpg`);
+                    dlFoto.innerText = "📥 Salva Foto Finita";
+                    cardWrapper.appendChild(dlFoto);
                 }
-                cardWrapper.appendChild(downloadLink);
             }
 
-            // GESTIONE STEP 3: SCHERMATA FINALE
             if (stepData.type === "finish") {
                 const qrFinalContainer = document.createElement("div");
-                qrFinalContainer.className = "bg-white p-4 rounded-2xl shadow-inner border border-gray-100 flex flex-col items-center justify-center space-y-4 my-2";
-                
+                qrFinalContainer.className = "bg-white p-4 rounded-2xl shadow-inner flex flex-col items-center justify-center space-y-4 my-2";
                 const qrDiv = document.createElement("div");
                 qrDiv.id = "qrcode-final-render";
-                qrDiv.className = "p-2 bg-white border rounded-xl";
                 qrFinalContainer.appendChild(qrDiv);
 
                 const codeText = document.createElement("div");
-                codeText.className = "text-lg font-mono font-black tracking-wider text-gray-800";
+                codeText.className = "text-lg font-mono font-black text-gray-800";
                 codeText.innerText = codiceQR2Univoco;
                 qrFinalContainer.appendChild(codeText);
-
                 cardWrapper.appendChild(qrFinalContainer);
 
                 setTimeout(() => {
@@ -219,25 +207,19 @@
 
             if (stepData.type !== "finish") {
                 const actionBtn = document.createElement("button");
-                actionBtn.className = "w-full mt-4 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-2xl shadow-md uppercase tracking-wide text-sm transition-colors";
+                actionBtn.className = "w-full mt-4 bg-amber-500 text-white font-bold py-4 rounded-2xl shadow-md uppercase tracking-wide text-sm";
                 actionBtn.innerText = stepData.buttonText;
                 actionBtn.onclick = () => handleStepAction(stepData.id);
                 cardWrapper.appendChild(actionBtn);
             }
 
             container.appendChild(cardWrapper);
-            safeRenderIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function elaboraFotoLive(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
-            document.getElementById("wizard-step").innerHTML = `
-                <div class="bg-white rounded-3xl p-6 shadow-xl text-center space-y-4">
-                    <div class="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p class="text-sm text-gray-500">Elaborazione immagine in corso...</p>
-                </div>`;
 
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -245,43 +227,25 @@
                 img.onload = function() {
                     const canvas = document.getElementById("canvas-storia");
                     const ctx = canvas.getContext("2d");
-                    canvas.width = 1080; 
-                    canvas.height = 1920;
-                    
-                    ctx.fillStyle = "#111827"; 
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    canvas.width = 1080; canvas.height = 1920;
+                    ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, canvas.width, canvas.height);
                     
                     const scala = Math.min(canvas.width / img.width, canvas.height / img.height);
                     const x = (canvas.width / 2) - (img.width * scala / 2);
                     const y = (canvas.height / 2) - (img.height * scala / 2);
                     ctx.drawImage(img, x, y, img.width * scala, img.height * scala);
 
-                    const hiddenQRContainer = document.createElement("div");
-                    hiddenQRContainer.style.display = "none";
-                    document.body.appendChild(hiddenQRContainer);
-                    
-                    new QRCode(hiddenQRContainer, { 
-                        text: `${urlServer}/cassa.html?codice=${codiceQR2Univoco}`, 
-                        width: 180, 
-                        height: 180,
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
+                    const hiddenQR = document.createElement("div");
+                    document.body.appendChild(hiddenQR);
+                    new QRCode(hiddenQR, { text: `${urlServer}/cassa.html?codice=${codiceQR2Univoco}`, width: 180, height: 180 });
                     
                     setTimeout(() => {
-                        const qrImgElement = hiddenQRContainer.querySelector('img');
-                        ctx.drawImage(qrImgElement, 850, 60, 180, 180);
-                        
-                        document.body.removeChild(hiddenQRContainer);
-
-                        const logo = new Image();
-                        logo.src = 'https://placehold.co/200x180/orange/white/png?text=LOGO';
-                        logo.onload = function() {
-                            ctx.drawImage(logo, 620, 60, 200, 180);
-                            appState.fotoElaborataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                            appState.currentStep = 1; 
-                            renderStep();
-                        }
-                    }, 400);
+                        ctx.drawImage(hiddenQR.querySelector('img'), 850, 60, 180, 180);
+                        document.body.removeChild(hiddenQR);
+                        appState.fotoElaborataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                        appState.currentStep = 1; 
+                        renderStep();
+                    }, 300);
                 }
                 img.src = e.target.result;
             }
@@ -291,39 +255,17 @@
         async function handleStepAction(stepId) {
             if (stepId === "welcome") {
                 if (appState.selectedFormat === "video") {
-                    const container = document.getElementById("wizard-step");
-                    container.innerHTML = `
-                        <div class="bg-white rounded-3xl p-6 shadow-xl text-center space-y-4">
-                            <div class="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                            <h3 class="text-lg font-bold text-gray-800">Timbro Video in corso...</h3>
-                            <p class="text-sm text-gray-400">FFmpeg sta integrando il QR2 all'interno del video. Attendi qualche istante.</p>
-                        </div>`;
-
-                    try {
-                        const response = await fetch(`${urlServer}/api/genera-video-tavolo`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo })
-                        });
-                        
-                        const videoBlob = await response.blob();
-                        appState.videoGeneratoUrl = URL.createObjectURL(videoBlob);
-                        
-                        appState.currentStep++;
-                        renderStep();
-                    } catch (err) {
-                        console.error(err);
-                        alert("Rallentamento del server o risorsa non pronta. Riprova.");
-                        renderStep();
-                    }
-                } else {
-                    if (appState.fotoElaborataUrl) {
-                        appState.currentStep++;
-                        renderStep();
-                    } else {
-                        alert("Per procedere devi prima scattare e caricare la foto del tuo piatto!");
-                    }
+                    // Chiamata istantanea senza caricamenti video pesanti
+                    const response = await fetch(`${urlServer}/api/inizia-sessione-video`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo })
+                    });
+                    const resData = await response.json();
+                    appState.qrStickerUrl = resData.qrStickerUrl;
                 }
+                appState.currentStep++;
+                renderStep();
                 return;
             }
 
@@ -335,13 +277,8 @@
                         body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo, formato: "foto" })
                     });
                 }
-
                 window.location.href = "instagram://camera";
-
-                setTimeout(() => {
-                    appState.currentStep++;
-                    renderStep();
-                }, 1200);
+                setTimeout(() => { appState.currentStep++; renderStep(); }, 1200);
             }
         }
 
