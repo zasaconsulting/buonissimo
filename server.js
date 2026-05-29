@@ -41,14 +41,12 @@ app.post('/api/genera-video-tavolo', async (req, res) => {
             margin: 1
         });
 
-        // 2. Usiamo FFmpeg per fondere il QR2 sul Video
+        // 2. Usiamo FFmpeg per fondere il QR2 sul Video (Corretto senza mappatura audio problematica)
         ffmpeg(videoOriginale)
             .input(qrImmagineTemporanea)
             .complexFilter([
-                '[0:v][1:v] overlay=850:60 [outv]'
+                '[0:v][1:v] overlay=850:60'
             ])
-            .map('[outv]')
-            .map('0:a?') // Copia l'audio se presente
             .videoCodec('libx264')
             .outputOptions('-pix_fmt yuv420p')
             .on('end', () => {
@@ -61,7 +59,7 @@ app.post('/api/genera-video-tavolo', async (req, res) => {
                 // Spediamo direttamente il file video generato come download al client
                 res.download(videoOutputFinale, `storia_${codice}.mp4`, (err) => {
                     if (err) console.error("Errore nel download del file:", err);
-                    // Eliminiamo il video da /tmp dopo l'invio per non accumulare spazio
+                    // Eliminiamo il video da /tmp dopo l'invio
                     if (fs.existsSync(videoOutputFinale)) {
                         fs.unlinkSync(videoOutputFinale);
                     }
@@ -72,12 +70,7 @@ app.post('/api/genera-video-tavolo', async (req, res) => {
                 res.status(500).json({ errore: "Errore durante il montaggio video" });
             })
             .save(videoOutputFinale);
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ errore: "Errore del server" });
-    }
-});
+        
 // Vecchi endpoint di controllo cassa e webhook rimangono invariati
 app.get('/api/verifica-cassa/:codice', (req, res) => {
     const codice = req.params.codice;
