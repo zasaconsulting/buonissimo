@@ -152,20 +152,34 @@
                 previewBox.className = "relative max-w-full rounded-2xl overflow-hidden shadow-inner border border-gray-100 aspect-[9/16] bg-black flex items-center justify-center";
 
                 if (appState.selectedFormat === "video") {
-                    const video = document.createElement("video");
-                    video.src = appState.videoGeneratoUrl; // URL fornito da FFmpeg backend
-                    video.autoplay = true;
-                    video.loop = true;
-                    video.muted = true;
-                    video.playsInline = true;
-                    video.className = "w-full h-full object-cover";
-                    previewBox.appendChild(video);
-                } else {
-                    const img = document.createElement("img");
-                    img.src = appState.fotoElaborataUrl; // URL generato da Canvas locale
-                    img.className = "w-full h-full object-cover";
-                    previewBox.appendChild(img);
-                }
+    const container = document.getElementById("wizard-step");
+    container.innerHTML = `
+        <div class="bg-white rounded-3xl p-6 shadow-xl text-center space-y-4">
+            <div class="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <h3 class="text-lg font-bold text-gray-800">Timbro Video in corso...</h3>
+            <p class="text-sm text-gray-400">FFmpeg sta assemblando il QR2 all'interno del video. Attendi qualche istante.</p>
+        </div>`;
+
+    try {
+        const response = await fetch(`${urlServer}/api/genera-video-tavolo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo })
+        });
+        
+        // Riceviamo il video come file binario (Blob)
+        const videoBlob = await response.blob();
+        appState.videoGeneratoUrl = URL.createObjectURL(videoBlob);
+        
+        appState.currentStep++;
+        renderStep();
+    } catch (err) {
+        console.error(err);
+        alert("Errore di connessione al server.");
+        renderStep();
+    }
+    return;
+}
 
                 cardWrapper.appendChild(previewBox);
 
