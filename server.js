@@ -15,11 +15,10 @@ app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 let sessioniTavoli = {}; 
 
-// Nuovo Endpoint: Genera il video MP4 reale con il QR2 stampato sopra
+// Nuovo Endpoint Corretto con percorsi /tmp per i permessi di Render
 app.post('/api/genera-video-tavolo', async (req, res) => {
     const { codice, tavolo } = req.body;
     
-    // Creiamo la sessione nel database della demo
     sessioniTavoli[codice] = {
         tavolo: tavolo,
         formatoScelto: "video",
@@ -29,19 +28,20 @@ app.post('/api/genera-video-tavolo', async (req, res) => {
 
     const cartellaAssets = path.join(__dirname, 'assets');
     const videoOriginale = path.join(cartellaAssets, 'video_promo.mp4');
-    const qrImmagineTemporanea = path.join(cartellaAssets, `qr_${codice}.png`);
-    const videoOutputFinale = path.join(cartellaAssets, `storia_${codice}.mp4`);
+    
+    // SPOSTATI IN /tmp: Qui Node.js e FFmpeg hanno i permessi totali di scrittura su Render
+    const qrImmagineTemporanea = path.join('/tmp', `qr_${codice}.png`);
+    const videoOutputFinale = path.join('/tmp', `storia_${codice}.mp4`);
 
     try {
-        // 1. Generiamo il QR Code come file PNG sul server
+        // 1. Generiamo il QR Code come file PNG in /tmp
         const linkFollower = `${req.protocol}://${req.get('host')}/riscatta?codice=${codice}`;
         await QRCode.toFile(qrImmagineTemporanea, linkFollower, {
             width: 180,
             margin: 1
         });
 
-        // 2. Usiamo FFmpeg per fondere il QR2 sul Video in alto a destra
-        // Coordinate: x = 1080 - 180 - 50 (850), y = 60
+        // 2. Usiamo FFmpeg per fondere il QR2 sul Video
         ffmpeg(videoOriginale)
             .input(qrImmagineTemporanea)
             .complexFilter([
@@ -50,13 +50,22 @@ app.post('/api/genera-video-tavolo', async (req, res) => {
             .map('[outv]')
             .map('0:a?') // Copia l'audio se presente
             .videoCodec('libx264')
-            .outputOptions('-pix_fmt yuv420p') // Massima compatibilità con smartphone
+            .outputOptions('-pix_fmt yuv420p')
             .on('end', () => {
-                // Eliminiamo il PNG temporaneo del QR per non intasare il server
-                fs.unlinkSync(qrImmagineTemporanea);
+                // Eliminiamo il QR temporaneo
+                if (fs.existsSync(qrImmagineTemporanea)) {
+                    fs.unlinkSync(qrImmagineTemporanea);
+                }
+                console.log(`[FFMPEG] Video generato con successo in /tmp per codice: ${codice}`);
                 
-                console.log(`[FFMPEG] Video generato con successo per codice: ${codice}`);
-                res.json({ successo: true, videoUrl: `/assets/storia_${codice}.mp4` });
+                // Spediamo direttamente il file video generato come download al client
+                res.download(videoOutputFinale, `storia_${codice}.mp4`, (err) => {
+                    if (err) console.error("Errore nel download del file:", err);
+                    // Eliminiamo il video da /tmp dopo l'invio per non accumulare spazio
+                    if (fs.existsSync(videoOutputFinale)) {
+                        fs.unlinkSync(videoOutputFinale);
+                    }
+                });
             })
             .on('error', (err) => {
                 console.error('[FFMPEG ERRORE]:', err);
@@ -69,7 +78,6 @@ app.post('/api/genera-video-tavolo', async (req, res) => {
         res.status(500).json({ errore: "Errore del server" });
     }
 });
-
 // Vecchi endpoint di controllo cassa e webhook rimangono invariati
 app.get('/api/verifica-cassa/:codice', (req, res) => {
     const codice = req.params.codice;
