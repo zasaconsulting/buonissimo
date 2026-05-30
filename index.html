@@ -41,7 +41,7 @@
             currentStep: 0,
             selectedFormat: "video", 
             fotoElaborataUrl: null,
-            qrStickerUrl: null
+            videoBlobUrl: null
         };
 
         const steps = [
@@ -49,20 +49,20 @@
                 id: "welcome",
                 title: "Sblocca il tuo Premio!",
                 desc: `Ti diamo il benvenuto al Tavolo ${numeroTavolo}. Scegli come preferisci creare la tua storia di Instagram per ricevere lo Sconto di Cassa:`,
-                buttonText: "Avanti",
+                buttonText: "Genera il mio Contenuto",
                 type: "selector"
             },
             {
                 id: "preview_media",
                 title: "Il tuo contenuto è pronto!",
-                desc: "Salva gli elementi sul tuo smartphone e aprilo su Instagram per pubblicare la tua storia taggando il locale!",
+                desc: "Il video include già il QR2 stampato su tutti i fotogrammi. Clicca sul pulsante sotto per scaricarlo sul tuo telefono e pubblicarlo su Instagram!",
                 buttonText: "Apri Instagram",
                 type: "preview"
             },
             {
                 id: "finish",
                 title: "Grazie per aver condiviso!",
-                desc: "Sessione verificata. Mostra questo codice QR2 alla cassa (avvicinalo al monitor) per riscuotere il tuo sconto.",
+                desc: "Sessione verificata. Mostra questo codice QR2 alla cassa (avvicinalo al monitor del Flexpad) per riscuotere il tuo sconto.",
                 buttonText: "Fatto",
                 type: "finish"
             }
@@ -97,7 +97,7 @@
                 selectorContainer.className = "grid grid-cols-2 gap-4 my-4";
 
                 const formats = [
-                    { id: "video", label: "🎥 Video PRO", desc: "Video ufficiale" },
+                    { id: "video", label: "🎥 Video PRO", desc: "Video ufficiale stampato" },
                     { id: "foto", label: "📸 Scatta Foto", desc: "Fotografa il piatto" }
                 ];
 
@@ -137,47 +137,33 @@
             }
 
             if (stepData.type === "preview") {
+                const previewBox = document.createElement("div");
+                previewBox.className = "relative rounded-2xl overflow-hidden aspect-[9/16] bg-black";
+
                 if (appState.selectedFormat === "video") {
-                    // Anteprima Video Strutturale
-                    const previewBox = document.createElement("div");
-                    previewBox.className = "relative rounded-2xl overflow-hidden aspect-[9/16] bg-black";
-                    
                     const video = document.createElement("video");
-                    video.src = `${urlServer}/assets/video_promo.mp4`;
+                    video.src = appState.videoBlobUrl;
                     video.autoplay = true; video.loop = true; video.muted = true; video.playsInline = true;
                     video.className = "w-full h-full object-cover";
                     previewBox.appendChild(video);
                     cardWrapper.appendChild(previewBox);
 
-                    // Pulsante 1: Scarica Video
-                    const dlVideo = document.createElement("a");
-                    dlVideo.className = "w-full bg-slate-800 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 text-sm";
-                    dlVideo.href = `${urlServer}/assets/video_promo.mp4`;
-                    dlVideo.setAttribute("download", "video_pasticceria.mp4");
-                    dlVideo.innerText = "1. Salva Video Promo";
+                    const dlVideo = document.createElement("button");
+                    dlVideo.className = "w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center text-sm";
+                    dlVideo.onclick = () => scaricaFileIos(appState.videoBlobUrl, `storia_${codiceQR2Univoco}.mp4`);
+                    dlVideo.innerText = "📥 Scarica Video con QR";
                     cardWrapper.appendChild(dlVideo);
-
-                    // Pulsante 2: Scarica Sticker QR2
-                    const dlQR = document.createElement("a");
-                    dlQR.className = "w-full bg-amber-500 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2 text-sm";
-                    dlQR.href = appState.qrStickerUrl;
-                    dlQR.setAttribute("download", "sticker_qr2.png");
-                    dlQR.innerText = "2. Salva Sticker QR Code";
-                    cardWrapper.appendChild(dlQR);
                 } else {
-                    const previewBox = document.createElement("div");
-                    previewBox.className = "relative rounded-2xl overflow-hidden aspect-[9/16] bg-black";
                     const img = document.createElement("img");
                     img.src = appState.fotoElaborataUrl;
                     img.className = "w-full h-full object-cover";
                     previewBox.appendChild(img);
                     cardWrapper.appendChild(previewBox);
 
-                    const dlFoto = document.createElement("a");
+                    const dlFoto = document.createElement("button");
                     dlFoto.className = "w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center text-sm";
-                    dlFoto.href = appState.fotoElaborataUrl;
-                    dlFoto.setAttribute("download", `storia_${codiceQR2Univoco}.jpg`);
-                    dlFoto.innerText = "📥 Salva Foto Finita";
+                    dlFoto.onclick = () => scaricaFileIos(appState.fotoElaborataUrl, `storia_${codiceQR2Univoco}.jpg`);
+                    dlFoto.innerText = "📥 Scarica Foto Finita";
                     cardWrapper.appendChild(dlFoto);
                 }
             }
@@ -215,6 +201,17 @@
 
             container.appendChild(cardWrapper);
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // Forza il salvataggio nativo bypassando le restrizioni di Safari iOS
+        function scaricaFileIos(url, nomeFile) {
+            const elementoAnchor = document.createElement('a');
+            elementoAnchor.href = url;
+            elementoAnchor.download = nomeFile;
+            // Importante per iOS: aggiungiamo temporaneamente l'elemento al DOM prima di cliccarlo
+            document.body.appendChild(elementoAnchor);
+            elementoAnchor.click();
+            document.body.removeChild(elementoAnchor);
         }
 
         function elaboraFotoLive(event) {
@@ -255,14 +252,31 @@
         async function handleStepAction(stepId) {
             if (stepId === "welcome") {
                 if (appState.selectedFormat === "video") {
-                    // Chiamata istantanea senza caricamenti video pesanti
-                    const response = await fetch(`${urlServer}/api/inizia-sessione-video`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo })
-                    });
-                    const resData = await response.json();
-                    appState.qrStickerUrl = resData.qrStickerUrl;
+                    const container = document.getElementById("wizard-step");
+                    container.innerHTML = `
+                        <div class="bg-white rounded-3xl p-6 shadow-xl text-center space-y-4">
+                            <div class="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <h3 class="text-lg font-bold text-gray-800">Generazione Video con QR...</h3>
+                            <p class="text-sm text-gray-400">FFmpeg sta assemblando il codice su tutti i fotogrammi. Attendi pochi istanti.</p>
+                        </div>`;
+
+                    try {
+                        const response = await fetch(`${urlServer}/api/genera-video-tavolo`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ codice: codiceQR2Univoco, tavolo: numeroTavolo })
+                        });
+                        
+                        // Riceviamo il video come file binario reale e forziamo il tipo ottetto per forzare Safari
+                        const videoBlob = await response.blob();
+                        const blobForzato = new Blob([videoBlob], { type: 'application/octet-stream' });
+                        appState.videoBlobUrl = URL.createObjectURL(blobForzato);
+                    } catch (err) {
+                        console.error(err);
+                        alert("Errore durante l'elaborazione del video.");
+                        renderStep();
+                        return;
+                    }
                 }
                 appState.currentStep++;
                 renderStep();
